@@ -22,7 +22,7 @@ func main() {
 		fmt.Printf("Получено сообщение: %s\n", string(msg.Data))
 
 		var data structs.Model
-		json.Unmarshal(&data)
+		json.Unmarshal(msg.Data, &data)
 		fmt.Println(data)
 
 	}, stan.DurableName("my-durable"))
