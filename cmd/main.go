@@ -1,29 +1,38 @@
 package main
 
 import (
-    "fmt"
-    "github.com/nats-io/stan.go"
+	"encoding/json"
+	"fmt"
+
+	"level0/internal/structs"
+
+	"github.com/nats-io/stan.go"
 )
 
 func main() {
-    sc, err := stan.Connect("test-cluster", "client-1") //подключение к кластеру NATS Streaming
+	sc, err := stan.Connect("test-cluster", "client-1") //подключение к кластеру NATS Streaming
 
-    defer sc.Close()
+	defer sc.Close()
 
-    if err != nil {
-        fmt.Println(err)
-    }
+	if err != nil {
+		fmt.Println(err)
+	}
 
-    subscribtion, err := sc.Subscribe("my-channel", func(msg *stan.Msg) {
-        fmt.Printf("Получено сообщение: %s\n", string(msg.Data))
-    }, stan.DurableName("my-durable"))
+	subscribtion, err := sc.Subscribe("my-channel", func(msg *stan.Msg) {
+		fmt.Printf("Получено сообщение: %s\n", string(msg.Data))
 
-    defer subscribtion.Unsubscribe()
+		var data structs.Model
+		json.Unmarshal(&data)
+		fmt.Println(data)
 
-    if err != nil {
-        fmt.Println(err)
-    }
+	}, stan.DurableName("my-durable"))
 
-    ch := make(chan int) 
-    <- ch
+	defer subscribtion.Unsubscribe()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	ch := make(chan int)
+	<-ch
 }
