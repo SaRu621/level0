@@ -42,7 +42,7 @@ type Model struct {
 	Track_number       string   `json:"track_number"`
 	Entry              string   `json:"entry"`
 	Deliv              Delivery `json:"delivery"`
-	Paym               Payment  `json:"payments"`
+	Paym               Payment  `json:"payment"`
 	Itms               []Items  `json:"items"`
 	Locale             string   `json:"locale"`
 	Internal_signature string   `json:"internal_signature"`

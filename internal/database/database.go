@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"level0/internal/structs"
+
 	"github.com/jackc/pgx/v4"
 )
 
@@ -25,10 +27,10 @@ func CreateConnection(user, pass, host, port, name string) (*pgx.Conn, error) {
 	return db, err
 }
 
-func CreateTableDelivery(db *pgx.Conn) {
-	db.Query(context.Background(),
+func CreateTableDelivery(db *pgx.Conn) error {
+	_, err := db.Exec(context.Background(),
 		`CREATE TABLE IF NOT EXISTS delivery (
-			id      INT,
+			id      INT PRIMARY KEY,
 			name    VARCHAR(60),
 			phone   VARCHAR(12),
 			zip     VARCHAR(10),
@@ -36,14 +38,16 @@ func CreateTableDelivery(db *pgx.Conn) {
 			address VARCHAR(30),
 			region  VARCHAR(25),
 			email   VARCHAR(50),
-			CONSTRAINTS pk_delivery_id PRIMARY KEY (id)
-		)`)
+			FOREIGN KEY (id) REFERENCES info(id)
+			)`)
+
+	return err
 }
 
-func CreateTablePayment(db *pgx.Conn) {
-	db.Query(context.Background(),
+func CreateTablePayment(db *pgx.Conn) error {
+	_, err := db.Exec(context.Background(),
 		`CREATE TABLE IF NOT EXISTS payment (
-			id 			  INT,
+			id 			  INT PRIMARY KEY, 
 			transaction   VARCHAR(20),
 			request_id 	  VARCHAR(20),
 			currency 	  VARCHAR(3),
@@ -54,12 +58,14 @@ func CreateTablePayment(db *pgx.Conn) {
 			delivery_cost INT NOT NULL,
 			goods_total   INT NOT NULL,
 			custom_fee    INT,
-			CONSTRAINTS pk_payment_id PRIMARY KEY (id)
+			FOREIGN KEY (id) REFERENCES info(id)
 		)`)
+
+	return err
 }
 
-func CreateTableItems(db *pgx.Conn) {
-	db.Query(context.Background(),
+func CreateTableItems(db *pgx.Conn) error {
+	_, err := db.Exec(context.Background(),
 		`CREATE TABLE IF NOT EXISTS items (
 			id 			 INT,
 			chrt_id 	 INT NOT NULL,
@@ -73,28 +79,116 @@ func CreateTableItems(db *pgx.Conn) {
 			nm_id 		 INT,
 			brand 		 VARCHAR(50),
 			status 		 INT,
-			CONSTRAINTS pk_items_id PRIMARY KEY (id)
+			FOREIGN KEY (id) REFERENCES info(id)			
 		)`)
+
+	return err
 }
 
-func CreateTableInfo(db *pgx.Conn) {
-	db.Query(context.Background(),
-		`CREATE TABLE info (
-			id INT,
-			order_uid VARCHAR(20),
-			track_number VARCHAR(14),
-			entry VARCHAR(10),
-			locale VARCHAR(2),
+func CreateTableInfo(db *pgx.Conn) error {
+	_, err := db.Exec(context.Background(),
+		`CREATE TABLE IF NOT EXISTS info (
+			id        		   SERIAL PRIMARY KEY,
+			order_uid 		   VARCHAR(20),
+			track_number 	   VARCHAR(14),
+			entry 			   VARCHAR(10),
+			locale 			   VARCHAR(2),
 			internal_signature VARCHAR(20),
-			customer_id VARCHAR(20),
-			deli
-			CONSTRAINTS pk_info_id PRIMARY KEY (id)
+			customer_id 	   VARCHAR(20),
+			delivery_service   VARCHAR(20),
+			shardkey 		   VARCHAR(10),
+			sm_id			   INT,
+			date_created	   TIMESTAMP,
+			oof_shard		   VARCHAR(10)
 		)`)
+
+	return err
 }
 
-func Migration(db *pgx.Conn) {
-	CreateTableDelivery(db)
-	CreateTableInfo(db)
-	CreateTablePayment(db)
-	CreateTableItems(db)
+func Migration(db *pgx.Conn) error {
+	err1 := CreateTableInfo(db)
+	err2 := CreateTableDelivery(db)
+	err3 := CreateTablePayment(db)
+	err4 := CreateTableItems(db)
+
+	if err1 != nil {
+		return err1
+	}
+
+	if err2 != nil {
+		return err2
+	}
+
+	if err3 != nil {
+		return err3
+	}
+
+	if err4 != nil {
+		return err4
+	}
+
+	return nil
+}
+
+func WriteInDelivery(id int, data structs.Delivery, db *pgx.Conn) error {
+	ToExec := fmt.Sprintf("INSERT INTO delivery VALUES (%d,'%s','%s','%s','%s','%s','%s','%s')",
+		id, data.Name, data.Phone, data.Zip, data.City, data.Address, data.Region, data.Email)
+
+	_, err := db.Exec(context.Background(), ToExec)
+
+	return err
+}
+
+func WriteInPayment(id int, data structs.Payment, db *pgx.Conn) error {
+	ToExec := fmt.Sprintf("INSERT INTO payment VALUES (%d, '%s','%s','%s','%s',%d,%d,'%s',%d,%d,%d)",
+		id, data.Transaction, data.Request_id, data.Currency, data.Provider, data.Amount,
+		data.Payment_dt, data.Bank, data.Delivery_cost, data.Goods_total, data.Custom_fee)
+
+	_, err := db.Exec(context.Background(), ToExec)
+
+	return err
+}
+
+func WriteInItems(id int, data structs.Items, db *pgx.Conn) error {
+	ToExec := fmt.Sprintf("INSERT INTO items VALUES (%d, %d,'%s',%d,'%s','%s',%d,'%s',%d,%d,'%s',%d)",
+		id, data.Chrt_id, data.Track_number, data.Price, data.Rid, data.Name,
+		data.Sale, data.Size, data.Total_price, data.Nm_id, data.Brand, data.Status)
+
+	_, err := db.Exec(context.Background(), ToExec)
+
+	return err
+}
+
+func WriteInDatabase(data structs.Model, db *pgx.Conn) error {
+	res, err := db.Query(context.Background(), "SELECT COUNT(*) FROM info")
+
+	if err != nil {
+		return err
+	}
+
+	var id int
+	for res.Next() {
+		res.Scan(&id)
+	}
+	id++
+
+	ToExec := fmt.Sprintf("INSERT INTO info VALUES (%d, '%s','%s','%s','%s','%s','%s','%s','%s',%d,'%s','%s')",
+		id, data.Order_uid, data.Track_number, data.Entry, data.Locale, data.Internal_signature,
+		data.Customer_id, data.Delivery_service, data.ShardKey, data.Sm_id, data.Date_created,
+		data.Oof_shard)
+
+	_, err = db.Exec(context.Background(), ToExec)
+
+	if err != nil {
+		return err
+	}
+
+	WriteInDelivery(id, data.Deliv, db)
+	WriteInPayment(id, data.Paym, db)
+
+	for _, val := range data.Itms {
+		WriteInItems(id, val, db)
+	}
+
+	return nil
 }
