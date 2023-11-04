@@ -3,11 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"time"
 
 	"level0/internal/database"
 	"level0/internal/structs"
 
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/nats-io/stan.go"
 )
@@ -31,6 +34,16 @@ func main() {
 		fmt.Println(err)
 	}
 
+	cash := make(map[string]structs.Model)
+	err = database.GetCash(cash, db)
+
+	//fmt.Println(cash["9J0S4V5SSV0LQ1OZ929Y"])
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	time.Sleep(time.Minute)
+
 	sc, err := stan.Connect("test-cluster", "client-1") //подключение к кластеру NATS Streaming
 
 	defer sc.Close()
@@ -53,6 +66,27 @@ func main() {
 		fmt.Println(err)
 	}
 
-	ch := make(chan int)
-	<-ch
+	r := mux.NewRouter()
+
+	r.HandleFunc("/order/{id}", func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		userId := vars["id"]
+
+		data := cash[userId]
+
+		jsonData, err := json.Marshal(data)
+
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonData)
+
+	}).Methods("GET")
+
+	http.Handle("/", r)
+
+	http.ListenAndServe(":"+os.Getenv("httpPort"), nil)
 }

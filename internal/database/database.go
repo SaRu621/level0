@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"level0/internal/structs"
 
@@ -52,7 +53,7 @@ func CreateTablePayment(db *pgx.Conn) error {
 			request_id 	  VARCHAR(20),
 			currency 	  VARCHAR(3),
 			provider 	  VARCHAR(10),
-			amout    	  INT NOT NULL,
+			amount    	  INT NOT NULL,
 			payment_dt 	  INT NOT NULL,
 			bank 		  VARCHAR(10),
 			delivery_cost INT NOT NULL,
@@ -188,6 +189,101 @@ func WriteInDatabase(data structs.Model, db *pgx.Conn) error {
 
 	for _, val := range data.Itms {
 		WriteInItems(id, val, db)
+	}
+
+	return nil
+}
+
+func GetCash(cash map[string]structs.Model, db *pgx.Conn) error {
+	rows, err := db.Query(context.Background(), `SELECT info.id, info.order_uid, info.track_number, info.entry, 
+												info.locale, info.internal_signature, info.customer_id, 
+												info.delivery_service, info.shardkey, info.sm_id, 
+												info.date_created, info.oof_shard,
+												delivery.name, delivery.phone, delivery.zip, 
+												delivery.city, delivery.address, delivery.region, 
+												delivery.email,
+												payment.transaction, payment.request_id, payment.currency,
+												payment.provider, payment.amount, payment.payment_dt, payment.bank, 
+												payment.delivery_cost, payment.goods_total,payment.custom_fee,
+												items.chrt_id, items.track_number, items.price, items.rid, items.name,
+												items.sale, items.size, items.total_price, items.nm_id, items.brand, 
+												items.status
+												FROM info 
+												INNER JOIN delivery ON info.id = delivery.id 
+												INNER JOIN payment ON delivery.id = payment.id 
+												INNER JOIN items ON payment.id = items.id`)
+
+	if err != nil {
+		return err
+	}
+
+	for rows.Next() {
+		var id int
+		var data structs.Model
+		var chrt_id int
+		var track_number string
+		var price int
+		var rid string
+		var name string
+		var sale int
+		var size string
+		var total_price int
+		var nm_id int
+		var brand string
+		var status int
+		var date_created time.Time
+
+		err = rows.Scan(&id, &data.Order_uid, &data.Track_number, &data.Entry, &data.Locale,
+			&data.Internal_signature, &data.Customer_id, &data.Delivery_service, &data.ShardKey, &data.Sm_id,
+			&date_created, &data.Oof_shard, &data.Deliv.Name, &data.Deliv.Phone, &data.Deliv.Zip,
+			&data.Deliv.City, &data.Deliv.Address, &data.Deliv.Region, &data.Deliv.Email,
+			&data.Paym.Transaction, &data.Paym.Request_id, &data.Paym.Currency, &data.Paym.Provider,
+			&data.Paym.Amount, &data.Paym.Payment_dt, &data.Paym.Bank, &data.Paym.Delivery_cost,
+			&data.Paym.Goods_total, &data.Paym.Custom_fee,
+			&chrt_id, &track_number, &price, &rid, &name, &sale, &size, &total_price, &nm_id,
+			&brand, &status)
+
+		if err != nil {
+			fmt.Println(err)
+			return err
+		}
+
+		data.Itms = append(data.Itms, structs.Items{
+			Chrt_id:      chrt_id,
+			Track_number: track_number,
+			Price:        price,
+			Rid:          rid,
+			Name:         name,
+			Sale:         sale,
+			Size:         size,
+			Total_price:  total_price,
+			Nm_id:        nm_id,
+			Brand:        brand,
+			Status:       status,
+		})
+
+		data.Date_created = date_created.Format("02-01-2006 15:04:05")
+
+		if _, ok := cash[data.Order_uid]; !ok {
+			cash[data.Order_uid] = data
+
+		} else {
+			data = cash[data.Order_uid]
+			data.Itms = append(cash[data.Order_uid].Itms, structs.Items{
+				Chrt_id:      chrt_id,
+				Track_number: track_number,
+				Price:        price,
+				Rid:          rid,
+				Name:         name,
+				Sale:         sale,
+				Size:         size,
+				Total_price:  total_price,
+				Nm_id:        nm_id,
+				Brand:        brand,
+				Status:       status,
+			})
+			cash[data.Order_uid] = data
+		}
 	}
 
 	return nil

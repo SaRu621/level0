@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 
 	"level0/internal/structs"
@@ -50,7 +51,7 @@ func Generator() structs.Model {
 		},
 	}
 
-	count := rand.Intn(2)
+	count := rand.Intn(5) + 2
 
 	res.Itms = make([]structs.Items, count)
 
@@ -101,10 +102,19 @@ func NumberGenerator(n int) int {
 	return num
 }
 
+func Loader(sc *stan.Conn, wg *sync.WaitGroup) {
+	inst := Generator()
+	jsondata, _ := json.Marshal(inst)
+
+	(*sc).Publish("my-channel", jsondata)
+
+	defer wg.Done()
+}
+
 func main() {
 	clusterId := "test-cluster"
 	clientId := "client-2"
-	channel := "my-channel"
+	//channel := "my-channel"
 
 	sc, err := stan.Connect(clusterId, clientId)
 
@@ -114,18 +124,15 @@ func main() {
 
 	defer sc.Close()
 
-loop:
 	for {
-		inst := Generator()
-		jsondata, _ := json.Marshal(inst)
+		var wg sync.WaitGroup
+		wg.Add(4)
+		go Loader(&sc, &wg)
+		go Loader(&sc, &wg)
+		go Loader(&sc, &wg)
+		go Loader(&sc, &wg)
+		wg.Wait()
 
-		err = sc.Publish(channel, jsondata)
-
-		if err != nil {
-			break loop
-		}
-
-		time.Sleep(time.Second / 100)
+		time.Sleep(time.Second)
 	}
-
 }
