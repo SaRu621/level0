@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-func CreateConnection(user, pass, host, port, name string) (*pgx.Conn, error) {
+func CreateConnection(user, pass, host, port, name string) (*pgx.Conn, error) { //создание подключения к БД
 	config := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", user, pass, host, port, name)
 
 	connConfig, err := pgx.ParseConfig(config)
@@ -28,7 +28,7 @@ func CreateConnection(user, pass, host, port, name string) (*pgx.Conn, error) {
 	return db, err
 }
 
-func CreateTableDelivery(db *pgx.Conn) error {
+func CreateTableDelivery(db *pgx.Conn) error { //создание таблицы delivery
 	_, err := db.Exec(context.Background(),
 		`CREATE TABLE IF NOT EXISTS delivery (
 			id      INT PRIMARY KEY,
@@ -45,7 +45,7 @@ func CreateTableDelivery(db *pgx.Conn) error {
 	return err
 }
 
-func CreateTablePayment(db *pgx.Conn) error {
+func CreateTablePayment(db *pgx.Conn) error { //создание таблицы payment
 	_, err := db.Exec(context.Background(),
 		`CREATE TABLE IF NOT EXISTS payment (
 			id 			  INT PRIMARY KEY, 
@@ -65,7 +65,7 @@ func CreateTablePayment(db *pgx.Conn) error {
 	return err
 }
 
-func CreateTableItems(db *pgx.Conn) error {
+func CreateTableItems(db *pgx.Conn) error { //создание таблицы items
 	_, err := db.Exec(context.Background(),
 		`CREATE TABLE IF NOT EXISTS items (
 			id 			 INT,
@@ -86,7 +86,7 @@ func CreateTableItems(db *pgx.Conn) error {
 	return err
 }
 
-func CreateTableInfo(db *pgx.Conn) error {
+func CreateTableInfo(db *pgx.Conn) error { //создание таблицы info
 	_, err := db.Exec(context.Background(),
 		`CREATE TABLE IF NOT EXISTS info (
 			id        		   SERIAL PRIMARY KEY,
@@ -106,7 +106,7 @@ func CreateTableInfo(db *pgx.Conn) error {
 	return err
 }
 
-func Migration(db *pgx.Conn) error {
+func Migration(db *pgx.Conn) error { //Миграция таблиц при их отсутствии
 	err1 := CreateTableInfo(db)
 	err2 := CreateTableDelivery(db)
 	err3 := CreateTablePayment(db)
@@ -131,7 +131,7 @@ func Migration(db *pgx.Conn) error {
 	return nil
 }
 
-func WriteInDelivery(id int, data structs.Delivery, db *pgx.Conn) error {
+func WriteInDelivery(id int, data structs.Delivery, db *pgx.Conn) error { //запись данных в таблицу delivery
 	ToExec := fmt.Sprintf("INSERT INTO delivery VALUES (%d,'%s','%s','%s','%s','%s','%s','%s')",
 		id, data.Name, data.Phone, data.Zip, data.City, data.Address, data.Region, data.Email)
 
@@ -140,7 +140,7 @@ func WriteInDelivery(id int, data structs.Delivery, db *pgx.Conn) error {
 	return err
 }
 
-func WriteInPayment(id int, data structs.Payment, db *pgx.Conn) error {
+func WriteInPayment(id int, data structs.Payment, db *pgx.Conn) error { //запись данных в таблицу payment
 	ToExec := fmt.Sprintf("INSERT INTO payment VALUES (%d, '%s','%s','%s','%s',%d,%d,'%s',%d,%d,%d)",
 		id, data.Transaction, data.Request_id, data.Currency, data.Provider, data.Amount,
 		data.Payment_dt, data.Bank, data.Delivery_cost, data.Goods_total, data.Custom_fee)
@@ -150,7 +150,7 @@ func WriteInPayment(id int, data structs.Payment, db *pgx.Conn) error {
 	return err
 }
 
-func WriteInItems(id int, data structs.Items, db *pgx.Conn) error {
+func WriteInItems(id int, data structs.Items, db *pgx.Conn) error { //запись данных в таблицу items
 	ToExec := fmt.Sprintf("INSERT INTO items VALUES (%d, %d,'%s',%d,'%s','%s',%d,'%s',%d,%d,'%s',%d)",
 		id, data.Chrt_id, data.Track_number, data.Price, data.Rid, data.Name,
 		data.Sale, data.Size, data.Total_price, data.Nm_id, data.Brand, data.Status)
@@ -160,7 +160,7 @@ func WriteInItems(id int, data structs.Items, db *pgx.Conn) error {
 	return err
 }
 
-func WriteInDatabase(data structs.Model, db *pgx.Conn) error {
+func WriteInDatabase(data structs.Model, db *pgx.Conn) error { //запись данных в таблицу info и отсальные таблицы
 	res, err := db.Query(context.Background(), "SELECT COUNT(*) FROM info")
 
 	if err != nil {

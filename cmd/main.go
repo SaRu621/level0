@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"time"
 
 	"level0/internal/database"
 	"level0/internal/structs"
@@ -16,33 +15,30 @@ import (
 )
 
 func main() {
-	err := godotenv.Load("/home/rus/GoFolder/level0/.env")
+	err := godotenv.Load("/home/rus/GoFolder/level0/.env") //файл переменных окружения
 
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	db, err := database.CreateConnection(os.Getenv("dbUser"), os.Getenv("dbPass"), os.Getenv("dbHost"), os.Getenv("dbPort"), os.Getenv("dbName"))
+	db, err := database.CreateConnection(os.Getenv("dbUser"), os.Getenv("dbPass"), os.Getenv("dbHost"), os.Getenv("dbPort"), os.Getenv("dbName")) //Создание подключения к БД
 
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	err = database.Migration(db)
+	err = database.Migration(db) //Миграция базы данных при отсутствии соответствующих зависимостей
 
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	cash := make(map[string]structs.Model)
-	err = database.GetCash(cash, db)
-
-	//fmt.Println(cash["9J0S4V5SSV0LQ1OZ929Y"])
+	cash := make(map[string]structs.Model) //кеш хранится в map
+	err = database.GetCash(cash, db)       //подгружение кеша из бд
 
 	if err != nil {
 		fmt.Println(err)
 	}
-	time.Sleep(time.Minute)
 
 	sc, err := stan.Connect("test-cluster", "client-1") //подключение к кластеру NATS Streaming
 
@@ -52,15 +48,19 @@ func main() {
 		fmt.Println(err)
 	}
 
-	subscribtion, err := sc.Subscribe("my-channel", func(msg *stan.Msg) {
+	subscribtion, err := sc.Subscribe("my-channel", func(msg *stan.Msg) { //Подписка на канал "my-channel" NATS
 		var data structs.Model
 
-		json.Unmarshal(msg.Data, &data)
+		err := json.Unmarshal(msg.Data, &data) //Валидация json-файла, при приеме невалидного json функция завершается
 
-		database.WriteInDatabase(data, db)
+		if err != nil {
+			return
+		}
+
+		database.WriteInDatabase(data, db) //Запись данных в БД
 	}, stan.DurableName("my-durable"))
 
-	defer subscribtion.Unsubscribe()
+	defer subscribtion.Unsubscribe() //Отписка от канала перед закрытием приложения
 
 	if err != nil {
 		fmt.Println(err)
@@ -68,21 +68,21 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/order/{id}", func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/order/{id}", func(w http.ResponseWriter, r *http.Request) { //Описание "ручки" (GET-запроса)
 		vars := mux.Vars(r)
 		userId := vars["id"]
 
 		data := cash[userId]
 
-		jsonData, err := json.Marshal(data)
+		jsonData, err := json.Marshal(data) //Преорбразование данных из кеша в json
 
 		if err != nil {
-			fmt.Println(err)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write(jsonData)
+		w.Write(jsonData) //Отправка данных
 
 	}).Methods("GET")
 
