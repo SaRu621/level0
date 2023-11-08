@@ -175,7 +175,7 @@ func WriteInDatabase(data structs.Model, db *pgx.Conn) error { //запись д
 
 	ToExec := fmt.Sprintf("INSERT INTO info VALUES (%d, '%s','%s','%s','%s','%s','%s','%s','%s',%d,'%s','%s')",
 		id, data.Order_uid, data.Track_number, data.Entry, data.Locale, data.Internal_signature,
-		data.Customer_id, data.Delivery_service, data.ShardKey, data.Sm_id, data.Date_created,
+		data.Customer_id, data.Delivery_service, data.ShardKey, data.Sm_id, data.Date_created.Format("2006-01-02 15:04:05"),
 		data.Oof_shard)
 
 	_, err = db.Exec(context.Background(), ToExec)
@@ -262,7 +262,7 @@ func GetCash(cash map[string]structs.Model, db *pgx.Conn) error {
 			Status:       status,
 		})
 
-		data.Date_created = date_created.Format("02-01-2006 15:04:05")
+		data.Date_created = date_created
 
 		if _, ok := cash[data.Order_uid]; !ok {
 			cash[data.Order_uid] = data

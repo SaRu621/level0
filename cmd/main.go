@@ -54,10 +54,14 @@ func main() {
 		err := json.Unmarshal(msg.Data, &data) //Валидация json-файла, при приеме невалидного json функция завершается
 
 		if err != nil {
+			fmt.Println(err)
 			return
 		}
 
-		database.WriteInDatabase(data, db) //Запись данных в БД
+		err = database.WriteInDatabase(data, db) //Запись данных в БД
+		if err != nil {
+			fmt.Println(err)
+		}
 	}, stan.DurableName("my-durable"))
 
 	defer subscribtion.Unsubscribe() //Отписка от канала перед закрытием приложения

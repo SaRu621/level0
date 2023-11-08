@@ -1,5 +1,7 @@
 package structs
 
+import "time"
+
 type Delivery struct {
 	Name    string `json:"name"`
 	Phone   string `json:"phone"`
@@ -38,18 +40,18 @@ type Items struct {
 }
 
 type Model struct {
-	Order_uid          string   `json:"order_uid"`
-	Track_number       string   `json:"track_number"`
-	Entry              string   `json:"entry"`
-	Deliv              Delivery `json:"delivery"`
-	Paym               Payment  `json:"payment"`
-	Itms               []Items  `json:"items"`
-	Locale             string   `json:"locale"`
-	Internal_signature string   `json:"internal_signature"`
-	Customer_id        string   `json:"customer_id"`
-	Delivery_service   string   `json:"delivery_service"`
-	ShardKey           string   `json:"shardkey"`
-	Sm_id              int      `json:"sm_id"`
-	Date_created       string   `json:"date_created"`
-	Oof_shard          string   `json:"oof_shard"`
+	Order_uid          string    `json:"order_uid"`
+	Track_number       string    `json:"track_number"`
+	Entry              string    `json:"entry"`
+	Deliv              Delivery  `json:"delivery"`
+	Paym               Payment   `json:"payment"`
+	Itms               []Items   `json:"items"`
+	Locale             string    `json:"locale"`
+	Internal_signature string    `json:"internal_signature"`
+	Customer_id        string    `json:"customer_id"`
+	Delivery_service   string    `json:"delivery_service"`
+	ShardKey           string    `json:"shardkey"`
+	Sm_id              int       `json:"sm_id"`
+	Date_created       time.Time `json:"date_created"format:"2021-11-26T06:22:19Z"`
+	Oof_shard          string    `json:"oof_shard"`
 }

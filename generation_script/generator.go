@@ -16,9 +16,11 @@ import (
 func Generator() structs.Model {
 	rand.Seed(time.Now().UnixNano())
 
+	tn := StringGenerator(14)
+
 	res := structs.Model{
 		Order_uid:          StringGenerator(20),
-		Track_number:       StringGenerator(14),
+		Track_number:       tn,
 		Entry:              StringGenerator(10),
 		Locale:             StringGenerator(2),
 		Internal_signature: StringGenerator(20),
@@ -26,7 +28,7 @@ func Generator() structs.Model {
 		Delivery_service:   StringGenerator(20),
 		ShardKey:           StringGenerator(10),
 		Sm_id:              NumberGenerator(8),
-		Date_created:       "2021-11-26T06:22:19Z",
+		Date_created:       time.Now(),
 		Oof_shard:          StringGenerator(10),
 		Paym: structs.Payment{
 			Transaction:   StringGenerator(20),
@@ -58,7 +60,7 @@ func Generator() structs.Model {
 	for i, _ := range res.Itms {
 		res.Itms[i] = structs.Items{
 			Chrt_id:      NumberGenerator(5),
-			Track_number: StringGenerator(14),
+			Track_number: tn,
 			Price:        NumberGenerator(5),
 			Rid:          StringGenerator(21),
 			Name:         StringGenerator(20),
@@ -104,12 +106,18 @@ func NumberGenerator(n int) int {
 
 func Loader(sc *stan.Conn, wg *sync.WaitGroup) {
 	inst := Generator()
-	jsondata, _ := json.Marshal(inst)
+	jsondata, err := json.Marshal(inst)
+
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	(*sc).Publish("my-channel", jsondata)
 
 	defer wg.Done()
 }
+
+const n = 10
 
 func main() {
 	clusterId := "test-cluster"
@@ -126,13 +134,11 @@ func main() {
 
 	for {
 		var wg sync.WaitGroup
-		wg.Add(4)
-		go Loader(&sc, &wg)
-		go Loader(&sc, &wg)
-		go Loader(&sc, &wg)
-		go Loader(&sc, &wg)
+		wg.Add(n)
+		for i := 0; i < n; i++ {
+			go Loader(&sc, &wg)
+		}
 		wg.Wait()
-
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 10)
 	}
 }

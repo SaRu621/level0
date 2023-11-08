@@ -3,7 +3,7 @@ import requests
 import json
 
 def send_request():
-    url = entry_url.get()
+    url = 'http://localhost:9000/order/' + entry_url.get()
 
     response = requests.get(url)  # выполняем GET-запрос
 
@@ -16,9 +16,9 @@ def send_request():
 window = tk.Tk()
 
 # Создаем поле для ввода URL
-label_url = tk.Label(window, text="URL:")
+label_url = tk.Label(window, text="order_uid:")
 label_url.pack()
-entry_url = tk.Entry(window, width=50)
+entry_url = tk.Entry(window, width=25)
 entry_url.pack()
 
 # Создаем кнопку отправки запроса
