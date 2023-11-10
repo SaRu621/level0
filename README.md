@@ -96,3 +96,25 @@
 cd tmp/nats-streaming-server-v0.14.2-linux-amd64
 ./nats-streaming-server
 ```
+Далее запуск самого приложения:
+
+```console
+cd level0/cmd/
+go run main.go
+```
+
+Запуск графического интерфейса:
+
+```console
+cd level0/interface/
+python3 client.py
+```
+
+Запуск скрипта-генератора:
+
+```console
+cd level0/generation_script/
+go run generator.go
+```
+
+Переменные окружения находятся в .env . В нем можно изменить параметры подключения к БД и изменить порт, на котором работает http-роутер.
