@@ -89,4 +89,10 @@
   "oof_shard": "1"
 }
 ```
-##
+## Запуск приложения
+
+Для запуска приложения необходимо запустить **nats streaming server**:
+```console
+cd tmp/nats-streaming-server-v0.14.2-linux-amd64
+./nats-streaming-server
+```
