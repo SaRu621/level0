@@ -91,6 +91,12 @@
 ```
 ## Запуск приложения
 
+Сначала клонируем репозиторий:
+
+```console
+git clone git@github.com:SaRu621/level0.git
+```
+
 Для запуска приложения необходимо запустить **nats streaming server**:
 ```console
 cd tmp/nats-streaming-server-v0.14.2-linux-amd64
